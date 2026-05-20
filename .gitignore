@@ -1,0 +1,10 @@
+.env
+.idea/
+__pycache__/
+*.py[cod]
+src/resource/temp
+src/resource/uploads
+/.venv/
+logs/
+temp/
+volumes/

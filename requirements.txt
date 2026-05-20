@@ -1,0 +1,16 @@
+langchain==1.2.13
+langchain-core==1.2.23
+langchain-community==0.4.1
+langchain-openai>=1.0.0
+python-dotenv==1.0.0
+charset-normalizer>=3.0.0
+requests>=2.32.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+EbookLib>=0.20
+beautifulsoup4>=4.14.0
+lxml>=6.0.0
+pysbd>=0.3.4
+SQLAlchemy>=2.0.0
+PyMySQL>=1.1.0

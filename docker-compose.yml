@@ -1,0 +1,41 @@
+services:
+  mysql:
+    image: bitnami/mysql:5.7
+    container_name: translate_agent_mysql
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - ./volumes/container_data/mysql:/bitnami/mysql/data
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pwd}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-translate_agent}
+      MYSQL_DEFAULT_AUTHENTICATION_PLUGIN: mysql_native_password
+      TZ: ${TZ:-Asia/Shanghai}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: translate_agent_app:latest
+    container_name: translate_agent_app
+    env_file:
+      - .env
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      APP_PORT: ${APP_PORT:-8890}
+    ports:
+      - "${APP_PORT:-8890}:${APP_PORT:-8890}"
+    volumes:
+      - ./logs:/app/logs
+      - ./src/resource/uploads:/app/src/resource/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped

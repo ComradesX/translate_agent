@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Translate Agent</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/antd@5.26.6/dist/reset.css"
+    />
+    <link rel="stylesheet" href="/web/styles.css?v=20260518-context-size-2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="article-sidebar ant-card">
+        <div class="sidebar-header">
+          <div>
+            <h1>句子列表</h1>
+            <p>选择文章后滚动加载句子</p>
+          </div>
+          <div class="article-select-row">
+            <select class="article-select" id="articleSelect" aria-label="选择文章"></select>
+            <button class="ant-button primary-button add-icon-button" id="openUploadButton" type="button" title="添加文章">
+              +
+            </button>
+          </div>
+          <form class="jump-form" id="jumpSentenceForm">
+            <input
+              id="jumpSentenceInput"
+              type="number"
+              min="1"
+              placeholder="跳到第几句"
+              aria-label="跳到第几句"
+            />
+            <button class="ant-button jump-button" type="submit">跳转</button>
+          </form>
+        </div>
+
+        <div class="sentence-list scroll-panel" id="sentenceList"></div>
+      </aside>
+
+      <main class="workbench">
+        <section class="content-frame ant-card">
+          <section class="content-card source-box">
+            <div class="section-title">原文</div>
+            <div class="box-content" id="sourceText">请选择左侧句子</div>
+          </section>
+
+          <section class="content-card ai-box">
+            <div class="card-title-row">
+              <div class="section-title">LLM 翻译</div>
+              <button class="ant-button link-button" id="createLlmButton" type="button">
+                <span>生成 AI 翻译</span>
+                <kbd>Ctrl + Shift + Enter</kbd>
+              </button>
+            </div>
+            <div class="box-content" id="llmTranslationText">等待生成</div>
+          </section>
+
+          <section class="content-card review-frame">
+            <label class="form-item user-box">
+              <span class="section-title">用户翻译</span>
+              <textarea id="userTranslationInput" placeholder="输入你的翻译"></textarea>
+            </label>
+
+            <div class="score-row">
+              <div class="score-box">
+                <span>评分</span>
+                <strong id="scoreText">-</strong>
+              </div>
+              <div class="comment-box">
+                <span>点评</span>
+                <p id="commentText">等待点评</p>
+              </div>
+            </div>
+
+            <button class="ant-button primary-button submit-review-button" id="submitReviewButton" type="button">
+              <span>提交点评</span>
+              <kbd>Ctrl + Enter</kbd>
+            </button>
+          </section>
+
+          <section class="history-strip" id="historyStrip">
+            <div class="history-title">历史翻译日期</div>
+            <div class="history-list" id="historyList">暂无历史翻译</div>
+          </section>
+
+          <footer class="sentence-footer">
+            <div class="sentence-position" id="sentencePosition">未选择文章</div>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="upload-dialog" id="uploadDialog">
+      <form class="upload-card ant-card" id="uploadForm">
+        <div class="dialog-header">
+          <h2>添加文章</h2>
+          <button class="icon-button" id="closeUploadButton" type="button">×</button>
+        </div>
+        <label>
+          EPUB / TXT 文件
+          <input name="file" type="file" accept=".epub,.txt,text/plain" required />
+        </label>
+        <label>
+          语言类型
+          <select name="language_type" class="upload-language-select" required>
+            <option value="english" selected>English</option>
+            <option value="german">Deutsch</option>
+            <option value="spanish">Español</option>
+            <option value="french">Français</option>
+            <option value="italian">Italiano</option>
+            <option value="japanese">日本語</option>
+            <option value="dutch">Nederlands</option>
+            <option value="polish">Polski</option>
+            <option value="russian">Русский</option>
+          </select>
+        </label>
+        <button class="ant-button primary-button upload-submit-button" id="uploadSubmitButton" type="submit">
+          上传并切句
+        </button>
+      </form>
+    </dialog>
+
+    <section class="toast" id="toast" hidden></section>
+
+    <script src="/web/app.js?v=20260518-context-size-2"></script>
+  </body>
+</html>
