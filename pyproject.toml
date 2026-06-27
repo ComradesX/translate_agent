@@ -24,4 +24,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-indextts = { path = "../index-tts", editable = true }
+indextts = { path = "../index-tts" }

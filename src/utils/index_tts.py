@@ -4,42 +4,22 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 import threading
 import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-
-def _load_project_env() -> None:
-    """加载项目 .env；IndexTTS 独立环境没有 python-dotenv 时使用轻量回退。"""
-    env_file = PROJECT_ROOT / ".env"
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv(env_file)
-        return
-    except ModuleNotFoundError:
-        pass
-
-    if not env_file.is_file():
-        return
-    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        if key and key.startswith("INDEXTTS_"):
-            os.environ.setdefault(key, value.strip().strip("'\""))
-
-
-_load_project_env()
+load_dotenv(PROJECT_ROOT / ".env")
 
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "src" / "resource" / "audio"
+DEFAULT_VOICE_PATH = (
+    PROJECT_ROOT / "src" / "resource" / "indextts" / "sample_prompt.wav"
+)
 
 _INFERENCE_LOCK = threading.Lock()
 
@@ -61,20 +41,6 @@ def _required_path(env_name: str, default: Path | None = None) -> Path:
 @lru_cache(maxsize=1)
 def _get_tts() -> Any:
     """延迟加载并复用模型，避免每次合成都重新载入权重。"""
-    # 直接运行本文件时，src/utils 会排在模块搜索路径最前面，当前的
-    # indextts.py 会遮蔽官方 indextts 包。优先加入官方仓库目录以避免冲突。
-    configured_repo_dir = os.getenv("INDEXTTS_REPO_DIR")
-    repo_dir = (
-        Path(configured_repo_dir).expanduser()
-        if configured_repo_dir
-        else PROJECT_ROOT.parent / "index-tts"
-    )
-    if not repo_dir.is_absolute():
-        repo_dir = PROJECT_ROOT / repo_dir
-    repo_dir = repo_dir.resolve()
-    if repo_dir.is_dir() and str(repo_dir) not in sys.path:
-        sys.path.insert(0, str(repo_dir))
-
     try:
         from indextts.infer_v2 import IndexTTS2
     except ModuleNotFoundError as exc:
@@ -88,9 +54,15 @@ def _get_tts() -> Any:
     model_dir = _required_path(
         "INDEXTTS_MODEL_DIR", PROJECT_ROOT / "checkpoints"
     )
-    config_path = _required_path(
-        "INDEXTTS_CONFIG_PATH", model_dir / "config.yaml"
-    )
+    config_path = model_dir / "config.yaml"
+    if not config_path.is_file():
+        raise FileNotFoundError(f"IndexTTS 配置文件不存在：{config_path}")
+
+    # IndexTTS2 源码会把 HF_HUB_CACHE 设置成相对路径
+    # ./checkpoints/hf_cache。这里改为模型目录下的绝对路径，避免缓存位置
+    # 随 PyCharm Working directory 改变。
+    os.environ["HF_HUB_CACHE"] = str(model_dir / "hf_cache")
+
     return IndexTTS2(
         cfg_path=str(config_path),
         model_dir=str(model_dir),
@@ -115,15 +87,15 @@ def generate_speech(text: str) -> tuple[str, str]:
 
     配置：
         - ``INDEXTTS_MODEL_DIR``：模型目录，默认 ``<项目根>/checkpoints``。
-        - ``INDEXTTS_CONFIG_PATH``：配置文件，默认 ``<模型目录>/config.yaml``。
-        - ``INDEXTTS_VOICE``：用于确定合成音色的参考音频。
+        - 模型配置固定读取 ``<模型目录>/config.yaml``。
+        - 参考音频默认读取 ``src/resource/indextts/sample_prompt.wav``。
         - ``INDEXTTS_OUTPUT_DIR``：输出目录，默认 ``src/resource/audio``。
     """
     normalized_text = text.strip()
     if not normalized_text:
         raise ValueError("text 不能为空")
 
-    voice_path = _required_path("INDEXTTS_VOICE")
+    voice_path = _required_path("INDEXTTS_VOICE", DEFAULT_VOICE_PATH)
     configured_output_dir = os.getenv("INDEXTTS_OUTPUT_DIR")
     output_dir = (
         Path(configured_output_dir).expanduser()

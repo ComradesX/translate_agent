@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 src/resource/temp
 src/resource/uploads
+src/resource/indextts
+src/utils/checkpoints
+
 /.venv/
 logs/
 temp/
