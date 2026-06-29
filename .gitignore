@@ -5,10 +5,10 @@ __pycache__/
 src/resource/temp
 src/resource/uploads
 src/resource/indextts
+src/resource/audio
 src/utils/checkpoints
 
 /.venv/
 logs/
 temp/
 volumes/
-/src/resource/audio
