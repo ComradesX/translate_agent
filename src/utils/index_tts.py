@@ -9,7 +9,6 @@ import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 from dotenv import load_dotenv
 
@@ -55,9 +54,7 @@ def _get_tts() -> Any:
 
     try:
         import huggingface_hub.constants as hf_constants
-        from indextts import infer_v2
         from indextts.infer_v2 import IndexTTS2
-        from indextts.utils import maskgct_utils
     except ModuleNotFoundError as exc:
         missing_package = exc.name or "未知依赖"
         raise RuntimeError(
@@ -73,64 +70,17 @@ def _get_tts() -> Any:
     os.environ["HF_HUB_CACHE"] = hf_cache_dir
     hf_constants.HF_HUB_CACHE = hf_cache_dir
 
-    init_kwargs = {
-        "cfg_path": str(config_path),
-        "model_dir": str(model_dir),
-        "use_fp16": os.getenv("INDEXTTS_USE_FP16", "false").lower() == "true",
-        "use_cuda_kernel": (
+    return IndexTTS2(
+        cfg_path=str(config_path),
+        model_dir=str(model_dir),
+        use_fp16=os.getenv("INDEXTTS_USE_FP16", "false").lower() == "true",
+        use_cuda_kernel=(
             os.getenv("INDEXTTS_USE_CUDA_KERNEL", "false").lower() == "true"
         ),
-        "use_deepspeed": (
+        use_deepspeed=(
             os.getenv("INDEXTTS_USE_DEEPSPEED", "false").lower() == "true"
         ),
-    }
-
-    local_w2v_dir = model_dir / "w2v-bert-2.0"
-    if not local_w2v_dir.is_dir():
-        return IndexTTS2(**init_kwargs)
-
-    original_feature_loader = infer_v2.SeamlessM4TFeatureExtractor.from_pretrained
-    original_semantic_loader = maskgct_utils.Wav2Vec2BertModel.from_pretrained
-    original_hf_download = infer_v2.hf_hub_download
-    local_maskgct_file = model_dir / "semantic_codec" / "model.safetensors"
-
-    def load_local_features(_: str, *args: Any, **kwargs: Any) -> Any:
-        return original_feature_loader(str(local_w2v_dir), *args, **kwargs)
-
-    def load_local_semantic_model(_: str, *args: Any, **kwargs: Any) -> Any:
-        return original_semantic_loader(str(local_w2v_dir), *args, **kwargs)
-
-    def load_local_hf_file(
-        repo_id: str, filename: str, *args: Any, **kwargs: Any
-    ) -> Any:
-        if (
-            repo_id == "amphion/MaskGCT"
-            and filename == "semantic_codec/model.safetensors"
-            and local_maskgct_file.is_file()
-        ):
-            return str(local_maskgct_file)
-        return original_hf_download(repo_id, filename, *args, **kwargs)
-
-    # IndexTTS2 在两个位置写死了 facebook/w2v-bert-2.0；初始化期间临时
-    # 重定向到魔搭下载的本地目录，不修改第三方包源码。
-    with (
-        patch.object(
-            infer_v2.SeamlessM4TFeatureExtractor,
-            "from_pretrained",
-            side_effect=load_local_features,
-        ),
-        patch.object(
-            maskgct_utils.Wav2Vec2BertModel,
-            "from_pretrained",
-            side_effect=load_local_semantic_model,
-        ),
-        patch.object(
-            infer_v2,
-            "hf_hub_download",
-            side_effect=load_local_hf_file,
-        ),
-    ):
-        return IndexTTS2(**init_kwargs)
+    )
 
 
 def generate_speech(text: str) -> tuple[str, str]:

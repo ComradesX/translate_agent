@@ -11,3 +11,4 @@ src/utils/checkpoints
 logs/
 temp/
 volumes/
+/src/resource/audio
